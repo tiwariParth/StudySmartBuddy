@@ -58,7 +58,7 @@ importers:
         version: 5.8.3
     devDependencies:
       axios:
-        specifier: ^1.6.5
+        specifier: ^1.8.4
         version: 1.8.4
       form-data:
         specifier: ^4.0.0

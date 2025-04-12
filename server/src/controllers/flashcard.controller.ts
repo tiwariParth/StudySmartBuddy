@@ -1,138 +1,114 @@
 import { Request, Response } from 'express';
+import FlashcardModel from '../models/Flashcard';
+import NoteModel from '../models/Note';
 import { generateFlashcards } from '../utils/aiService';
-import Flashcard from '../models/Flashcard';
-import Note from '../models/Note';
-import mongoose from 'mongoose';
 
 /**
- * Generate flashcards from text content
+ * Generate flashcards from a text
+ * @route POST /api/flashcards/generate
  */
 export const generateFlashcardsForText = async (req: Request, res: Response): Promise<void> => {
   try {
     const { text } = req.body;
-    
+
     if (!text) {
-      res.status(400).json({
-        success: false,
-        message: 'Text content is required'
-      });
+      res.status(400).json({ success: false, message: 'Text content is required' });
       return;
     }
 
     const flashcards = await generateFlashcards(text);
-
+    
     res.status(200).json({
       success: true,
-      message: 'Flashcards generated successfully',
       flashcards
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in generateFlashcards:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate flashcards'
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to generate flashcards' 
     });
   }
 };
 
 /**
- * Save flashcards to the database associated with a note
+ * Save flashcards to a note
+ * @route POST /api/flashcards/save
  */
 export const saveFlashcards = async (req: Request, res: Response): Promise<void> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
   try {
     const { userId, noteId, flashcards } = req.body;
     
     if (!userId || !noteId || !flashcards || !Array.isArray(flashcards)) {
-      res.status(400).json({
-        success: false,
-        message: 'UserId, noteId, and flashcards array are required'
+      res.status(400).json({ 
+        success: false, 
+        message: 'userId, noteId, and flashcards array are required' 
       });
-      await session.abortTransaction();
-      session.endSession();
       return;
     }
 
-    const note = await Note.findById(noteId);
-    
+    // Find the note first
+    const note = await NoteModel.findById(noteId);
     if (!note) {
-      res.status(404).json({
-        success: false,
-        message: 'Note not found'
-      });
-      await session.abortTransaction();
-      session.endSession();
+      res.status(404).json({ success: false, message: 'Note not found' });
       return;
     }
-    
-    // Create flashcard documents
-    const flashcardPromises = flashcards.map(({ question, answer }: { question: string, answer: string }) => {
-      const newFlashcard = new Flashcard({
-        userId,
+
+    // Save each flashcard and collect their IDs
+    const savedFlashcards = [];
+    for (const card of flashcards) {
+      const flashcard = new FlashcardModel({
         noteId,
-        question,
-        answer
+        question: card.question,
+        answer: card.answer
       });
-      return newFlashcard.save({ session });
-    });
-    
-    const savedFlashcards = await Promise.all(flashcardPromises);
-    
-    // Update the note with flashcard IDs
+      
+      await flashcard.save();
+      savedFlashcards.push(flashcard);
+    }
+
+    // Update the note with reference to flashcards
     note.flashcards = savedFlashcards.map(card => card._id);
-    await note.save({ session });
+    await note.save();
     
-    await session.commitTransaction();
-    session.endSession();
-    
-    res.status(201).json({
-      success: true,
+    res.status(200).json({ 
+      success: true, 
       message: 'Flashcards saved successfully',
       flashcards: savedFlashcards
     });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    
+  } catch (error: any) {
     console.error('Error in saveFlashcards:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to save flashcards'
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to save flashcards' 
     });
   }
 };
 
 /**
- * Get all flashcards for a specific user
+ * Get all flashcards for a note
+ * @route GET /api/flashcards
  */
-export const getUserFlashcards = async (req: Request, res: Response): Promise<void> => {
+export const getFlashcards = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId } = req.params;
+    const { noteId } = req.query;
     
-    if (!userId) {
-      res.status(400).json({
-        success: false,
-        message: 'User ID is required'
-      });
+    if (!noteId) {
+      res.status(400).json({ success: false, message: 'Note ID is required' });
       return;
     }
-
-    const flashcards = await Flashcard.find({ userId })
-      .populate('noteId', 'title')
-      .sort({ createdAt: -1 });
-
+    
+    const flashcards = await FlashcardModel.find({ noteId });
+    
     res.status(200).json({
       success: true,
-      message: 'Flashcards retrieved successfully',
       flashcards
     });
-  } catch (error) {
-    console.error('Error in getUserFlashcards:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve flashcards'
+  } catch (error: any) {
+    console.error('Error in getFlashcards:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to fetch flashcards' 
     });
   }
 };
@@ -153,7 +129,7 @@ export const updateFlashcard = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const flashcard = await Flashcard.findById(id);
+    const flashcard = await FlashcardModel.findById(id);
     
     if (!flashcard) {
       res.status(404).json({
@@ -198,7 +174,7 @@ export const deleteFlashcard = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const deletedFlashcard = await Flashcard.findByIdAndDelete(id);
+    const deletedFlashcard = await FlashcardModel.findByIdAndDelete(id);
     
     if (!deletedFlashcard) {
       res.status(404).json({
@@ -209,7 +185,7 @@ export const deleteFlashcard = async (req: Request, res: Response): Promise<void
     }
     
     // Also remove from the note's flashcards array
-    await Note.updateOne(
+    await NoteModel.updateOne(
       { _id: deletedFlashcard.noteId },
       { $pull: { flashcards: deletedFlashcard._id } }
     );
@@ -230,7 +206,7 @@ export const deleteFlashcard = async (req: Request, res: Response): Promise<void
 export default {
   generateFlashcardsForText,
   saveFlashcards,
-  getUserFlashcards,
+  getFlashcards,
   updateFlashcard,
   deleteFlashcard
 };

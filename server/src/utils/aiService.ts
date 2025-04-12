@@ -1,17 +1,30 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 
-// Initialize OpenAI with better error handling for the API key
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error('OPENAI_API_KEY is not defined in environment variables');
+// AI Provider configuration
+const AI_PROVIDER = process.env.AI_PROVIDER || 'openai'; // Options: 'openai', 'openrouter', 'ollama'
+
+// Initialize OpenAI with API key if using OpenAI
+const openaiApiKey = process.env.OPENAI_API_KEY;
+if (AI_PROVIDER === 'openai' && !openaiApiKey) {
+  console.warn('OPENAI_API_KEY is not defined in environment variables. Using fallback or another provider.');
 }
 
-const openai = new OpenAI({
-  apiKey
-});
+// Initialize OpenAI client if using OpenAI
+const openai = AI_PROVIDER === 'openai' ? new OpenAI({
+  apiKey: openaiApiKey
+}) : null;
+
+// OpenRouter configuration (offers free models)
+const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// Ollama configuration (completely free, locally hosted)
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama2';
 
 /**
  * Generate a basic summary when AI is not available
@@ -92,18 +105,256 @@ const generateBasicFlashcards = (content: string): Array<{ question: string; ans
 };
 
 /**
- * Generate a summary from text content
+ * Try to generate a summary using OpenRouter API (with free models)
+ * @param content Text to summarize
+ * @returns Summary text
+ */
+const generateOpenRouterSummary = async (content: string): Promise<string> => {
+  try {
+    if (!openrouterApiKey) {
+      console.warn('OPENROUTER_API_KEY is missing, using basic summary generation.');
+      return generateBasicSummary(content);
+    }
+
+    console.log('Using OpenRouter for summary generation...');
+    const trimmedContent = content.length > 8000 
+      ? content.substring(0, 8000) + '...' 
+      : content;
+
+    const response = await axios.post(
+      OPENROUTER_URL,
+      {
+        model: 'mistralai/mixtral-8x7b-instruct',  // Free model on OpenRouter
+        messages: [
+          {
+            role: 'user',
+            content: `You're a study assistant. Summarize the following text in bullet points for easy revision:\n\n${trimmedContent}`
+          }
+        ],
+        max_tokens: 800,
+        temperature: 0.3
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${openrouterApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data.choices[0].message.content;
+  } catch (error: any) {
+    console.error('OpenRouter API error:', error?.response?.data || error.message);
+    return generateBasicSummary(content);
+  }
+};
+
+/**
+ * Try to generate flashcards using OpenRouter API
+ * @param content Text to generate flashcards from
+ * @returns Array of question-answer pairs
+ */
+const generateOpenRouterFlashcards = async (content: string): Promise<Array<{ question: string; answer: string }>> => {
+  try {
+    if (!openrouterApiKey) {
+      console.warn('OPENROUTER_API_KEY is missing, using basic flashcard generation.');
+      return generateBasicFlashcards(content);
+    }
+
+    console.log('Using OpenRouter for flashcard generation...');
+    const trimmedContent = content.length > 8000 
+      ? content.substring(0, 8000) + '...' 
+      : content;
+
+    const response = await axios.post(
+      OPENROUTER_URL,
+      {
+        model: 'mistralai/mixtral-8x7b-instruct',  // Free model on OpenRouter
+        messages: [
+          {
+            role: 'user',
+            content: `Based on the following text, generate a list of Q&A flashcards:\n\n${trimmedContent}\n\nReturn the output in JSON with format:\n[{ "question": "...", "answer": "..." }]`
+          }
+        ],
+        max_tokens: 800,
+        temperature: 0.3,
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${openrouterApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const responseContent = response.data.choices[0].message.content;
+    try {
+      const parsedResponse = JSON.parse(responseContent);
+      if (Array.isArray(parsedResponse.cards)) {
+        return parsedResponse.cards;
+      } else if (Array.isArray(parsedResponse)) {
+        return parsedResponse;
+      }
+    } catch (error) {
+      console.error('Error parsing OpenRouter JSON response:', error);
+    }
+    return generateBasicFlashcards(content);
+  } catch (error: any) {
+    console.error('OpenRouter API error:', error?.response?.data || error.message);
+    return generateBasicFlashcards(content);
+  }
+};
+
+/**
+ * Try to generate a summary using locally hosted Ollama (completely free)
+ * @param content Text to summarize
+ * @returns Summary text
+ */
+const generateOllamaSummary = async (content: string): Promise<string> => {
+  try {
+    console.log('Using Ollama for summary generation...');
+    const trimmedContent = content.length > 8000 
+      ? content.substring(0, 8000) + '...' 
+      : content;
+
+    const response = await axios.post(
+      `${OLLAMA_URL}/generate`,
+      {
+        model: OLLAMA_MODEL,
+        prompt: `You're a study assistant. Summarize the following text in bullet points for easy revision:\n\n${trimmedContent}`,
+        stream: false
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data.response;
+  } catch (error: any) {
+    console.error('Ollama API error:', error?.response?.data || error.message);
+    return generateBasicSummary(content);
+  }
+};
+
+/**
+ * Try to generate flashcards using locally hosted Ollama
+ * @param content Text to generate flashcards from
+ * @returns Array of question-answer pairs
+ */
+const generateOllamaFlashcards = async (content: string): Promise<Array<{ question: string; answer: string }>> => {
+  try {
+    console.log('Using Ollama for flashcard generation...');
+    const trimmedContent = content.length > 8000 
+      ? content.substring(0, 8000) + '...' 
+      : content;
+
+    const response = await axios.post(
+      `${OLLAMA_URL}/generate`,
+      {
+        model: OLLAMA_MODEL,
+        prompt: `Based on the following text, generate a list of Q&A flashcards:\n\n${trimmedContent}\n\nReturn the output in JSON with format:\n[{ "question": "...", "answer": "..." }]`,
+        stream: false
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    try {
+      // Try to extract JSON from the response
+      const responseText = response.data.response;
+      const jsonMatch = responseText.match(/\[.*\]/s); // Find JSON array in response
+      if (jsonMatch) {
+        const jsonString = jsonMatch[0];
+        const parsedResponse = JSON.parse(jsonString);
+        if (Array.isArray(parsedResponse)) {
+          return parsedResponse;
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing Ollama response:', error);
+    }
+    return generateBasicFlashcards(content);
+  } catch (error: any) {
+    console.error('Ollama API error:', error?.response?.data || error.message);
+    return generateBasicFlashcards(content);
+  }
+};
+
+/**
+ * Generate a summary from text content based on configured AI provider
  * @param content The text content to summarize
  * @returns A summarized version of the content
  */
 export const generateSummary = async (content: string): Promise<string> => {
-  try {
-    if (!content || content.trim().length === 0) {
-      return "No content provided to summarize.";
-    }
+  if (!content || content.trim().length === 0) {
+    return "No content provided to summarize.";
+  }
 
+  // Choose the appropriate AI provider based on configuration
+  try {
+    console.log(`Using ${AI_PROVIDER} as the AI provider for summary generation...`);
+
+    switch (AI_PROVIDER) {
+      case 'openai':
+        return await generateOpenAISummary(content);
+      case 'openrouter':
+        return await generateOpenRouterSummary(content);
+      case 'ollama':
+        return await generateOllamaSummary(content);
+      default:
+        console.warn(`Unknown AI provider ${AI_PROVIDER}, using fallback summary generation.`);
+        return generateBasicSummary(content);
+    }
+  } catch (error: any) {
+    console.error('Error generating summary:', error);
+    return generateBasicSummary(content);
+  }
+};
+
+/**
+ * Generate flashcards from text content based on configured AI provider
+ * @param content The text content to generate flashcards from
+ * @returns An array of question-answer pairs
+ */
+export const generateFlashcards = async (content: string): Promise<Array<{ question: string; answer: string }>> => {
+  if (!content || content.trim().length === 0) {
+    return [];
+  }
+
+  // Choose the appropriate AI provider based on configuration
+  try {
+    console.log(`Using ${AI_PROVIDER} as the AI provider for flashcard generation...`);
+
+    switch (AI_PROVIDER) {
+      case 'openai':
+        return await generateOpenAIFlashcards(content);
+      case 'openrouter':
+        return await generateOpenRouterFlashcards(content);
+      case 'ollama':
+        return await generateOllamaFlashcards(content);
+      default:
+        console.warn(`Unknown AI provider ${AI_PROVIDER}, using fallback flashcard generation.`);
+        return generateBasicFlashcards(content);
+    }
+  } catch (error: any) {
+    console.error('Error generating flashcards:', error);
+    return generateBasicFlashcards(content);
+  }
+};
+
+/**
+ * Original OpenAI implementation for summary generation
+ */
+async function generateOpenAISummary(content: string): Promise<string> {
+  try {
     // Check if API key is missing, use fallback if it is
-    if (!apiKey) {
+    if (!openaiApiKey || !openai) {
       console.warn('OpenAI API key is missing, using fallback summary generation.');
       return generateBasicSummary(content);
     }
@@ -134,45 +385,32 @@ export const generateSummary = async (content: string): Promise<string> => {
     
     return summaryText;
   } catch (error: any) {
-    console.error('Error generating summary:', error);
+    console.error('Error in OpenAI summary generation:', error);
     
     // If we hit rate limits or other OpenAI API issues, use fallback
     if (
-      error.status === 429 || // Rate limit
+      error.status === 429 || 
       error.code === 'insufficient_quota' || 
       error.type === 'insufficient_quota' ||
-      error.status === 500 || // Server error
-      error.status === 503 || // Service unavailable
-      (error.message && error.message.includes('quota')) // Any quota-related messages
+      error.status === 500 || 
+      error.status === 503 ||
+      (error.message && error.message.includes('quota'))
     ) {
       console.warn('OpenAI API quota exceeded or service unavailable. Using fallback summary generation.');
       return generateBasicSummary(content);
     }
     
-    // For other errors, provide more specific error messages
-    if (error.response) {
-      console.error('OpenAI API error status:', error.response.status);
-      console.error('OpenAI API error data:', error.response.data);
-      throw new Error(`OpenAI API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-    }
-    
-    throw new Error(`Failed to generate summary: ${error.message || 'Unknown error'}`);
+    throw error;
   }
-};
+}
 
 /**
- * Generate flashcards from text content
- * @param content The text content to generate flashcards from
- * @returns An array of question-answer pairs
+ * Original OpenAI implementation for flashcard generation
  */
-export const generateFlashcards = async (content: string): Promise<Array<{ question: string; answer: string }>> => {
+async function generateOpenAIFlashcards(content: string): Promise<Array<{ question: string; answer: string }>> {
   try {
-    if (!content || content.trim().length === 0) {
-      throw new Error('No content provided to generate flashcards from.');
-    }
-    
     // Check if API key is missing, use fallback if it is
-    if (!apiKey) {
+    if (!openaiApiKey || !openai) {
       console.warn('OpenAI API key is missing, using fallback flashcard generation.');
       return generateBasicFlashcards(content);
     }
@@ -224,31 +462,24 @@ export const generateFlashcards = async (content: string): Promise<Array<{ quest
       throw new Error(`Failed to parse flashcard data: ${parseError.message}`);
     }
   } catch (error: any) {
-    console.error('Error generating flashcards:', error);
+    console.error('Error in OpenAI flashcard generation:', error);
     
     // If we hit rate limits or other OpenAI API issues, use fallback
     if (
-      error.status === 429 || // Rate limit
+      error.status === 429 || 
       error.code === 'insufficient_quota' || 
       error.type === 'insufficient_quota' ||
-      error.status === 500 || // Server error
-      error.status === 503 || // Service unavailable
-      (error.message && error.message.includes('quota')) // Any quota-related messages
+      error.status === 500 || 
+      error.status === 503 ||
+      (error.message && error.message.includes('quota'))
     ) {
       console.warn('OpenAI API quota exceeded or service unavailable. Using fallback flashcard generation.');
       return generateBasicFlashcards(content);
     }
     
-    // For other errors, provide more specific error messages
-    if (error.response) {
-      console.error('OpenAI API error status:', error.response.status);
-      console.error('OpenAI API error data:', error.response.data);
-      throw new Error(`OpenAI API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-    }
-    
-    throw new Error(`Failed to generate flashcards: ${error.message || 'Unknown error'}`);
+    throw error;
   }
-};
+}
 
 export default {
   generateSummary,
