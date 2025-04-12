@@ -1,5 +1,6 @@
 import fs from 'fs';
-import pdf from 'pdf-parse';
+// Change the import syntax for pdf-parse to avoid TypeScript declaration issues
+const pdf = require('pdf-parse');
 import path from 'path';
 
 /**
