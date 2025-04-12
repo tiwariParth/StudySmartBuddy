@@ -58,6 +58,7 @@ export const saveFlashcards = async (req: Request, res: Response): Promise<void>
     const savedFlashcards = [];
     for (const card of flashcards) {
       const flashcard = new FlashcardModel({
+        userId, 
         noteId,
         question: card.question,
         answer: card.answer
@@ -109,6 +110,49 @@ export const getFlashcards = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ 
       success: false, 
       message: error.message || 'Failed to fetch flashcards' 
+    });
+  }
+};
+
+/**
+ * Get all flashcards for a specific user
+ * @route GET /api/flashcards/user/:userId
+ */
+export const getUserFlashcards = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'User ID is required' });
+      return;
+    }
+    
+    // Find all notes belonging to the user
+    const userNotes = await NoteModel.find({ userId });
+    
+    if (!userNotes || userNotes.length === 0) {
+      res.status(200).json({
+        success: true,
+        flashcards: []
+      });
+      return;
+    }
+    
+    // Get all note IDs
+    const noteIds = userNotes.map(note => note._id);
+    
+    // Find all flashcards associated with these notes
+    const flashcards = await FlashcardModel.find({ noteId: { $in: noteIds } });
+    
+    res.status(200).json({
+      success: true,
+      flashcards
+    });
+  } catch (error: any) {
+    console.error('Error in getUserFlashcards:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to fetch user flashcards' 
     });
   }
 };
@@ -207,6 +251,7 @@ export default {
   generateFlashcardsForText,
   saveFlashcards,
   getFlashcards,
+  getUserFlashcards,
   updateFlashcard,
   deleteFlashcard
 };
