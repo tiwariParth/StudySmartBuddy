@@ -14,7 +14,9 @@ import {
   DownloadCloud, 
   AlertCircle,
   BookOpen,
-  BrainCircuit
+  BrainCircuit,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -141,6 +143,16 @@ export default function NotePage() {
     }
   };
 
+  const handleEdit = () => {
+    // Placeholder for edit functionality
+    console.log("Edit button clicked");
+  };
+
+  const handleDelete = () => {
+    // Placeholder for delete functionality
+    console.log("Delete button clicked");
+  };
+
   if (loading) {
     return <PageLoader text="Loading note..." />;
   }
@@ -195,6 +207,23 @@ export default function NotePage() {
             <ArrowLeft size={16} className="mr-2" /> Back to Dashboard
           </Link>
         </Button>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">{note.title}</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleEdit}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Button 
+              variant="destructiveOutline" 
+              onClick={handleDelete}
+              className="hover:shadow-md transition-all duration-300"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-400 dark:to-violet-400">
           {note.title}
         </h1>

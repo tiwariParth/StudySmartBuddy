@@ -4,6 +4,7 @@ import path from 'path';
 import { extractTextFromPDF } from '../utils/pdfUtils';
 import { generateSummary } from '../utils/aiService';
 import Note from '../models/Note';
+import Flashcard from '../models/Flashcard';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -219,6 +220,53 @@ export const getNoteById = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve note'
+    });
+  }
+};
+
+/**
+ * Delete a note and its associated flashcards
+ */
+export const deleteNote = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        message: 'Note ID is required'
+      });
+      return;
+    }
+
+    // Find the note to get its flashcards
+    const note = await Note.findById(id);
+    
+    if (!note) {
+      res.status(404).json({
+        success: false,
+        message: 'Note not found'
+      });
+      return;
+    }
+
+    // Delete all associated flashcards
+    if (note.flashcards && note.flashcards.length > 0) {
+      await Flashcard.deleteMany({ _id: { $in: note.flashcards } });
+    }
+    
+    // Delete the note
+    await Note.findByIdAndDelete(id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Note and associated flashcards deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deleteNote:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete note'
     });
   }
 };

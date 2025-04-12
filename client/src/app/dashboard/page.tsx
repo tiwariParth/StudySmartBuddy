@@ -3,12 +3,28 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { PageLoader, Loader } from "@/components/ui/loader";
 import { api } from "@/lib/api";
-import { FileIcon, Plus, Clock, AlertCircle, BookOpenText, Search } from "lucide-react";
+import { Plus, Clock, AlertCircle, BookOpenText, Search, Trash2, MoreHorizontal } from "lucide-react";
 import { formatDate, truncateText } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Animation variants
 const container = {
@@ -64,6 +80,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchNotes() {
@@ -86,6 +105,28 @@ export default function DashboardPage() {
 
     fetchNotes();
   }, []);
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      
+      const response = await api.deleteNote(noteId);
+      
+      if (response && response.success) {
+        // Remove the note from the local state
+        setNotes(notes.filter(note => note._id !== noteId));
+      } else {
+        throw new Error(response?.message || "Failed to delete note");
+      }
+    } catch (err: any) {
+      console.error("Failed to delete note:", err);
+      setDeleteError("Failed to delete note. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setNoteToDelete(null);
+    }
+  };
 
   // Filter notes based on search term
   const filteredNotes = notes.filter(note => 
@@ -179,6 +220,17 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      {deleteError && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative mb-6 flex items-start" 
+        >
+          <AlertCircle size={20} className="mr-2 mt-0.5 flex-shrink-0" />
+          <span>{deleteError}</span>
+        </motion.div>
+      )}
+
       <AnimatePresence>
         {!loading && notes.length === 0 && !error && (
           <motion.div 
@@ -259,18 +311,43 @@ export default function DashboardPage() {
                   exit={{ opacity: 0, y: 20 }}
                   layout
                 >
-                  <Link href={`/notes/${note._id}`}>
-                    <motion.div
-                      initial="rest"
-                      whileHover="hover"
-                      variants={cardHover}
-                    >
-                      <Card className="h-full border-2 hover:border-primary/20 group overflow-hidden">
-                        <CardHeader>
+                  <motion.div
+                    initial="rest"
+                    whileHover="hover"
+                    variants={cardHover}
+                  >
+                    <Card className="h-full border-2 hover:border-primary/20 group overflow-hidden relative">
+                      <CardHeader className="flex flex-row items-start justify-between pb-2">
+                        <Link href={`/notes/${note._id}`} className="flex-1">
                           <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors">
                             {note.title}
                           </CardTitle>
-                        </CardHeader>
+                        </Link>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              className="h-8 w-8 p-0 rounded-full"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                              onClick={() => setNoteToDelete(note._id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </CardHeader>
+                      
+                      <Link href={`/notes/${note._id}`}>
                         <CardContent>
                           <p className="text-muted-foreground line-clamp-3 mb-4">
                             {truncateText(note.summary, 150)}
@@ -281,15 +358,40 @@ export default function DashboardPage() {
                           </div>
                         </CardContent>
                         <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300"></div>
-                      </Card>
-                    </motion.div>
-                  </Link>
+                      </Link>
+                    </Card>
+                  </motion.div>
                 </motion.div>
               ))}
             </motion.div>
           )}
         </AnimatePresence>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={noteToDelete !== null} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your note and all its flashcards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                if (noteToDelete) handleDeleteNote(noteToDelete);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader size="sm" text="Deleting..." /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
