@@ -337,7 +337,7 @@ export default function DashboardPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive cursor-pointer"
+                              className="bg-red-50 text-red-600 font-medium cursor-pointer rounded-md hover:bg-red-600 hover:text-white focus:bg-red-600 focus:text-white transition-colors duration-200"
                               onClick={() => setNoteToDelete(note._id)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
