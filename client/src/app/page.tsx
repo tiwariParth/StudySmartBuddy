@@ -21,7 +21,7 @@ export default function Home() {
             </Button>
           </Link>
           <Link href="/upload">
-            <Button size="lg" variant="outline" className="gap-2">
+            <Button size="lg" variant="outline" className="flex items-center gap-2">
               <Upload size={20} />
               Upload PDF
             </Button>
