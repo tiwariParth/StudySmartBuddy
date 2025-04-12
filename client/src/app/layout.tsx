@@ -1,41 +1,64 @@
-import { Inter } from 'next/font/google';
-import { Navbar } from '@/components/layout/navbar';
-import './globals.css';
-import type { Metadata, Viewport } from 'next';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter as FontSans } from "next/font/google";
+import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/ui/theme-provider";
+import { Navbar } from "@/components/layout/navbar";
 
-const inter = Inter({ subsets: ['latin'] });
+const fontSans = FontSans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
-  title: 'StudySmartBuddy - AI-Powered Study Assistant',
-  description: 'Transform PDFs into interactive summaries and flashcards with AI to enhance your study experience',
-  keywords: 'study, AI, flashcards, notes, learning, education, PDF',
-  authors: [{ name: 'StudySmartBuddy Team' }],
+  title: "StudySmartBuddy - AI Study Assistant",
+  description: "Transform your PDFs and notes into interactive study materials with AI",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
+interface RootLayoutProps {
   children: React.ReactNode;
-}>) {
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className="antialiased">
-      <body className={inter.className}>
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <footer className="py-6 border-t">
-            <div className="container text-center text-sm text-muted-foreground">
-              <p>© {new Date().getFullYear()} StudySmartBuddy. All rights reserved.</p>
-            </div>
-          </footer>
-        </div>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          fontSans.variable
+        )}
+      >
+        <ThemeProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <Navbar />
+            <div className="flex-1">{children}</div>
+            
+            <footer className="border-t py-6 md:py-8">
+              <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
+                <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+                  © {new Date().getFullYear()} StudySmartBuddy. All rights reserved.
+                </p>
+                <div className="flex gap-4">
+                  <a 
+                    href="#" 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                  <a 
+                    href="#" 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </div>
+              </div>
+            </footer>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

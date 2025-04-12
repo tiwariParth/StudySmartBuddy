@@ -13,9 +13,11 @@ import {
   FileText, 
   DownloadCloud, 
   AlertCircle,
-  BookOpen
+  BookOpen,
+  BrainCircuit
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 type Note = {
   _id: string;
@@ -146,141 +148,211 @@ export default function NotePage() {
   if (error || !note) {
     return (
       <div className="container py-12">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 flex items-start">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative mb-6 flex items-start"
+        >
           <AlertCircle className="mr-2 mt-0.5 flex-shrink-0" size={20} />
           <span>{error || "Failed to load note"}</span>
-        </div>
-        <Button asChild>
+        </motion.div>
+        <Button asChild className="transition-transform hover:scale-105 active:scale-95">
           <Link href="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
     );
   }
 
+  const fadeInUp = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+      }
+    }
+  };
+  
+  const stagger = {
+    visible: {
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
   return (
-    <div className="container py-8 max-w-5xl">
-      <div className="mb-8">
-        <Button variant="outline" asChild className="mb-4">
+    <div className="container py-8 max-w-5xl px-4 sm:px-6">
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mb-8"
+      >
+        <Button variant="outline" asChild className="mb-4 transition-all hover:bg-primary/5">
           <Link href="/dashboard">
             <ArrowLeft size={16} className="mr-2" /> Back to Dashboard
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">{note.title}</h1>
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-400 dark:to-violet-400">
+          {note.title}
+        </h1>
         <p className="text-sm text-muted-foreground mt-2">
           Created on {formatDate(note.createdAt)}
         </p>
-      </div>
+      </motion.div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center">
-                  <BookOpen size={18} className="mr-2" />
-                  Summary
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose max-w-none">
-                {note.summary.split('\n').map((paragraph, i) => (
-                  <p key={i} className={i > 0 ? "mt-4" : ""}>
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <motion.div 
+        variants={stagger}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+      >
+        <motion.div 
+          variants={fadeInUp} 
+          className="lg:col-span-2"
+        >
+          <motion.div 
+            whileHover={{ scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card className="border-2 shadow-md dark:shadow-slate-800/20">
+              <CardHeader className="border-b">
+                <CardTitle>
+                  <div className="flex items-center text-primary">
+                    <BookOpen size={18} className="mr-2" />
+                    Summary
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="prose dark:prose-invert max-w-none"
+                >
+                  {note.summary.split('\n').map((paragraph, i) => (
+                    <p key={i} className={i > 0 ? "mt-4" : ""}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
         
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center">
-                  <FileText size={18} className="mr-2" />
-                  Flashcards
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {note.flashcards && note.flashcards.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    {note.flashcards.length} flashcards available
-                  </p>
-                  <Button asChild className="w-full">
-                    <Link href={`/flashcards/${note._id}`}>
-                      Practice Flashcards
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    No flashcards yet. Generate them from your note.
-                  </p>
-                  <Button 
-                    onClick={handleGenerateFlashcards} 
-                    className="w-full"
-                    disabled={flashcardLoading}
+        <motion.div 
+          variants={fadeInUp} 
+          className="space-y-6"
+        >
+          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+            <Card className="border-2 shadow-md dark:shadow-slate-800/20">
+              <CardHeader className="border-b">
+                <CardTitle>
+                  <div className="flex items-center text-primary">
+                    <FileText size={18} className="mr-2" />
+                    Flashcards
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {note.flashcards && note.flashcards.length > 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="space-y-4"
                   >
-                    {flashcardLoading ? (
-                      <Loader text="Generating..." size="sm" />
-                    ) : (
-                      'Generate Flashcards'
-                    )}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="flex items-center justify-center p-4 bg-primary/10 rounded-lg mb-4">
+                      <BrainCircuit className="text-primary mr-3" size={24} />
+                      <p className="font-medium">{note.flashcards.length} flashcards available</p>
+                    </div>
+                    <Button 
+                      asChild 
+                      size="lg"
+                      className="w-full transition-transform hover:scale-105 active:scale-95"
+                    >
+                      <Link href={`/flashcards/${note._id}`}>
+                        Practice Flashcards
+                      </Link>
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="space-y-4"
+                  >
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      No flashcards yet. Generate them from your note.
+                    </p>
+                    <Button 
+                      onClick={handleGenerateFlashcards} 
+                      className="w-full transition-transform hover:scale-105 active:scale-95"
+                      disabled={flashcardLoading}
+                    >
+                      {flashcardLoading ? (
+                        <Loader text="Generating..." size="sm" />
+                      ) : (
+                        'Generate Flashcards'
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center">
-                  <Download size={18} className="mr-2" />
-                  Export
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleExport('markdown')}
-                disabled={exportLoading !== null}
-              >
-                {exportLoading === 'markdown' ? (
-                  <Loader size="sm" text="Exporting..." />
-                ) : (
-                  <>
-                    <Download size={16} className="mr-2" />
-                    Export as Markdown
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleExport('anki')}
-                disabled={exportLoading !== null}
-              >
-                {exportLoading === 'anki' ? (
-                  <Loader size="sm" text="Exporting..." />
-                ) : (
-                  <>
-                    <DownloadCloud size={16} className="mr-2" />
-                    Export to Anki
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+            <Card className="border-2 shadow-md dark:shadow-slate-800/20">
+              <CardHeader className="border-b">
+                <CardTitle>
+                  <div className="flex items-center text-primary">
+                    <Download size={18} className="mr-2" />
+                    Export
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start transition-all hover:bg-primary/5"
+                  onClick={() => handleExport('markdown')}
+                  disabled={exportLoading !== null}
+                >
+                  {exportLoading === 'markdown' ? (
+                    <Loader size="sm" text="Exporting..." />
+                  ) : (
+                    <>
+                      <Download size={16} className="mr-2" />
+                      Export as Markdown
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start transition-all hover:bg-primary/5"
+                  onClick={() => handleExport('anki')}
+                  disabled={exportLoading !== null}
+                >
+                  {exportLoading === 'anki' ? (
+                    <Loader size="sm" text="Exporting..." />
+                  ) : (
+                    <>
+                      <DownloadCloud size={16} className="mr-2" />
+                      Export to Anki
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

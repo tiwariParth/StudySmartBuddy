@@ -6,8 +6,47 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { PageLoader, Loader } from "@/components/ui/loader";
 import { api } from "@/lib/api";
-import { FileIcon, Plus, Clock, AlertCircle } from "lucide-react";
+import { FileIcon, Plus, Clock, AlertCircle, BookOpenText, Search } from "lucide-react";
 import { formatDate, truncateText } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Animation variants
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 260,
+      damping: 20
+    }
+  }
+};
+
+// Enhanced card hover animation variant
+const cardHover = {
+  rest: { scale: 1, boxShadow: "0px 0px 0px rgba(0,0,0,0)" },
+  hover: { 
+    scale: 1.02, 
+    boxShadow: "0px 5px 15px rgba(0,0,0,0.1)",
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 25
+    }
+  }
+};
 
 // Mock user ID - in a real app this would come from authentication
 const USER_ID = "test-user-123";
@@ -23,6 +62,8 @@ export default function DashboardPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
     async function fetchNotes() {
@@ -46,59 +87,208 @@ export default function DashboardPage() {
     fetchNotes();
   }, []);
 
+  // Filter notes based on search term
+  const filteredNotes = notes.filter(note => 
+    searchTerm === "" || 
+    note.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    note.summary.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="container py-8 max-w-7xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Your Study Materials</h1>
+      {/* Animated gradient background */}
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-400/10 dark:bg-blue-700/10 rounded-full blur-3xl -z-10"></div>
+      <div className="absolute top-60 left-0 w-[400px] h-[400px] bg-violet-400/10 dark:bg-violet-700/10 rounded-full blur-3xl -z-10"></div>
+      
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4"
+      >
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-400 dark:to-violet-400">
+          Your Study Materials
+        </h1>
         <Link href="/upload">
-          <Button className="gap-2">
+          <Button className="gap-2 transition-transform hover:scale-105 active:scale-95">
             <Plus size={16} />
             New Upload
           </Button>
         </Link>
-      </div>
+      </motion.div>
 
-      {loading && <PageLoader text="Loading your study materials..." />}
+      {/* Search bar */}
+      <AnimatePresence>
+        {notes.length > 0 && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="relative mb-8"
+          >
+            <div className={`flex items-center border-2 rounded-lg px-3 py-2 ${isSearchFocused ? 'border-primary ring-2 ring-primary/20' : 'border-input'} transition-all duration-200`}>
+              <Search size={18} className="text-muted-foreground mr-2" />
+              <input
+                type="text"
+                placeholder="Search your notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-foreground"
+              />
+              {searchTerm && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => setSearchTerm("")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </motion.button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {loading && 
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <PageLoader text="Loading your study materials..." />
+        </motion.div>
+      }
       
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-start" role="alert">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative flex items-start" 
+          role="alert"
+        >
           <AlertCircle size={20} className="mr-2 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
-        </div>
+        </motion.div>
       )}
 
-      {!loading && notes.length === 0 && !error && (
-        <div className="text-center py-12">
-          <FileIcon size={64} className="mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl font-medium mb-2">No notes yet</h3>
-          <p className="text-muted-foreground mb-4">Upload a PDF to get started with your study journey</p>
-          <Link href="/upload">
-            <Button>Upload your first PDF</Button>
-          </Link>
-        </div>
-      )}
+      <AnimatePresence>
+        {!loading && notes.length === 0 && !error && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-center py-12 px-4 border-2 border-dashed rounded-lg border-slate-200 dark:border-slate-700"
+          >
+            <motion.div 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="bg-primary/10 w-20 h-20 flex items-center justify-center rounded-full mx-auto mb-4"
+            >
+              <BookOpenText size={40} className="text-primary" />
+            </motion.div>
+            <motion.h3 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-xl font-medium mb-2"
+            >
+              No notes yet
+            </motion.h3>
+            <motion.p 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="text-muted-foreground mb-6 max-w-md mx-auto"
+            >
+              Upload a PDF to get started with your study journey. We'll help you create summaries and flashcards.
+            </motion.p>
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              <Link href="/upload">
+                <Button className="gap-2 transition-transform hover:scale-105 active:scale-95">
+                  <Plus size={16} />
+                  Upload your first PDF
+                </Button>
+              </Link>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {notes.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notes.map((note) => (
-            <Link href={`/notes/${note._id}`} key={note._id}>
-              <Card className="h-full hover:shadow-md transition-all cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{note.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground line-clamp-3 mb-4">
-                    {truncateText(note.summary, 150)}
-                  </p>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock size={14} className="mr-1" />
-                    {formatDate(note.createdAt)}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <AnimatePresence>
+          {filteredNotes.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-12"
+            >
+              <div className="bg-slate-100 dark:bg-slate-800 w-16 h-16 flex items-center justify-center rounded-full mx-auto mb-4">
+                <Search size={24} className="text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">No matching notes</h3>
+              <p className="text-muted-foreground">Try a different search term</p>
+            </motion.div>
+          ) : (
+            <motion.div 
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {filteredNotes.map((note) => (
+                <motion.div 
+                  key={note._id} 
+                  variants={item}
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, y: 20 }}
+                  layout
+                >
+                  <Link href={`/notes/${note._id}`}>
+                    <motion.div
+                      initial="rest"
+                      whileHover="hover"
+                      variants={cardHover}
+                    >
+                      <Card className="h-full border-2 hover:border-primary/20 group overflow-hidden">
+                        <CardHeader>
+                          <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors">
+                            {note.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-muted-foreground line-clamp-3 mb-4">
+                            {truncateText(note.summary, 150)}
+                          </p>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Clock size={14} className="mr-1" />
+                            {formatDate(note.createdAt)}
+                          </div>
+                        </CardContent>
+                        <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300"></div>
+                      </Card>
+                    </motion.div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
     </div>
   );
