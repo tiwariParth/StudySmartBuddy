@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { Navbar } from "@/components/layout/navbar";
+import Navbar from "@/components/layout/navbar";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           fontSans.variable
         )}
       >
-        <ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <div className="relative flex min-h-screen flex-col">
             <Navbar />
             <div className="flex-1">{children}</div>

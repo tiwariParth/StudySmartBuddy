@@ -27,3 +27,19 @@ export function truncateText(text: string, length = 100) {
   if (text.length <= length) return text;
   return text.slice(0, length) + "...";
 }
+
+/**
+ * Helper function to check if the current theme is dark
+ * This is useful for client components that need to know the current theme
+ */
+export function isDarkTheme(): boolean {
+  if (typeof window === "undefined") return false;
+  
+  // Check for data-theme attribute first
+  if (document.documentElement.classList.contains("dark")) {
+    return true;
+  }
+  
+  // Fallback to checking the system preference
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
