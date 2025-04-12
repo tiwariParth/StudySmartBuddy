@@ -4,9 +4,9 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 // Import routes
-import notesRoutes from './routes/notes.routes.js';
-import flashcardRoutes from './routes/flashcard.routes.js';
-import exportRoutes from './routes/export.routes.js';
+import notesRoutes from './routes/notes.routes';
+import flashcardRoutes from './routes/flashcard.routes';
+import exportRoutes from './routes/export.routes';
 
 // Load environment variables
 dotenv.config();

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import Note from '../models/Note.js';
-import Flashcard from '../models/Flashcard.js';
+import Note from '../models/Note';
+import Flashcard from '../models/Flashcard';
 
 // Ensure exports directory exists
 const exportsDir = path.join(process.cwd(), 'exports');

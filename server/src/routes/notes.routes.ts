@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import multer from 'multer';
-import * as notesController from '../controllers/notes.controller.js';
+import * as notesController from '../controllers/notes.controller';
 
 // Set up multer for file upload
 const storage = multer.diskStorage({

@@ -23,6 +23,8 @@ services:
       - ME_CONFIG_MONGODB_ADMINUSERNAME=smartnotes
       - ME_CONFIG_MONGODB_ADMINPASSWORD=smartnotespassword
       - ME_CONFIG_MONGODB_URL=mongodb://smartnotes:smartnotespassword@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=pass
     depends_on:
       - mongodb
 

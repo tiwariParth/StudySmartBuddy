@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { extractTextFromPDF } from '../utils/pdfUtils.js';
-import { generateSummary } from '../utils/aiService.js';
-import Note from '../models/Note.js';
+import { extractTextFromPDF } from '../utils/pdfUtils';
+import { generateSummary } from '../utils/aiService';
+import Note from '../models/Note';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');

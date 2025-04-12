@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { generateFlashcards } from '../utils/aiService.js';
-import Flashcard from '../models/Flashcard.js';
-import Note from '../models/Note.js';
+import { generateFlashcards } from '../utils/aiService';
+import Flashcard from '../models/Flashcard';
+import Note from '../models/Note';
 import mongoose from 'mongoose';
 
 /**
