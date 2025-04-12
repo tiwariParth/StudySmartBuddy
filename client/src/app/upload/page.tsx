@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Loader } from "@/components/ui/loader";
 import { api } from "@/lib/api";
 import { Loader2, Upload, Check, AlertCircle, FileTextIcon } from "lucide-react";
 
@@ -28,6 +30,10 @@ export default function UploadPage() {
         setError("Please select a PDF file");
         return;
       }
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+        setError("File size exceeds 10MB limit");
+        return;
+      }
       setFile(selectedFile);
       setError(null);
     }
@@ -41,6 +47,9 @@ export default function UploadPage() {
     }
     
     try {
+      // Reset any previous errors
+      setError(null);
+      
       // Step 1: Upload PDF
       setStatus("uploading");
       setProgress(20);
@@ -141,23 +150,23 @@ export default function UploadPage() {
     <div className="container max-w-3xl py-12">
       <h1 className="text-3xl font-bold mb-8">Upload PDF</h1>
       
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-          <input
-            type="file"
-            id="pdf-upload"
-            accept=".pdf"
-            onChange={handleFileChange}
-            className="hidden"
-            disabled={status !== "idle" && status !== "error"}
-          />
-          <label 
-            htmlFor="pdf-upload" 
-            className="cursor-pointer flex flex-col items-center"
+      <Card className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div 
+            className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => document.getElementById('pdf-upload')?.click()}
           >
+            <input
+              type="file"
+              id="pdf-upload"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={status !== "idle" && status !== "error"}
+            />
             {file ? (
               <>
-                <FileTextIcon size={48} className="mb-4 text-primary" />
+                <FileTextIcon size={48} className="mb-4 text-primary mx-auto" />
                 <p className="text-lg font-medium mb-2">{file.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {(file.size / (1024 * 1024)).toFixed(2)} MB
@@ -165,52 +174,52 @@ export default function UploadPage() {
               </>
             ) : (
               <>
-                <Upload size={48} className="mb-4 text-muted-foreground" />
+                <Upload size={48} className="mb-4 text-muted-foreground mx-auto" />
                 <p className="text-lg font-medium mb-2">
                   Click to upload or drag and drop
                 </p>
                 <p className="text-sm text-muted-foreground">PDF (Max 10MB)</p>
               </>
             )}
-          </label>
-        </div>
+          </div>
 
-        {status !== "idle" && status !== "error" && (
-          <div className="mt-6">
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${progress}%` }}
-              />
+          {status !== "idle" && status !== "error" && (
+            <div className="mt-6">
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="mt-4 flex items-center justify-center">
+                {renderProgressStatus().icon}
+                <p>{renderProgressStatus().text}</p>
+              </div>
             </div>
-            <div className="mt-4 flex items-center">
-              {renderProgressStatus().icon}
-              <p>{renderProgressStatus().text}</p>
+          )}
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-start">
+              <AlertCircle size={20} className="mr-2 mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
             </div>
+          )}
+          
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={!file || (status !== "idle" && status !== "error")}
+              className="gap-2"
+            >
+              {status === "idle" || status === "error" ? (
+                <>Process PDF</>
+              ) : (
+                <>Processing...</>
+              )}
+            </Button>
           </div>
-        )}
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-start">
-            <AlertCircle size={20} className="mr-2 mt-0.5 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            disabled={!file || (status !== "idle" && status !== "error")}
-            className="gap-2"
-          >
-            {status === "idle" || status === "error" ? (
-              <>Process PDF</>
-            ) : (
-              <>Processing...</>
-            )}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   );
 }

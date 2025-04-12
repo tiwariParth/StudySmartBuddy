@@ -4,8 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { PageLoader, Loader } from "@/components/ui/loader";
 import { api } from "@/lib/api";
-import { ArrowLeft, Download, FileText, DownloadCloud, Loader2, AlertCircle } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Download, 
+  FileText, 
+  DownloadCloud, 
+  AlertCircle,
+  BookOpen
+} from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 type Note = {
   _id: string;
@@ -27,6 +37,7 @@ export default function NotePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState<'markdown' | 'anki' | null>(null);
+  const [flashcardLoading, setFlashcardLoading] = useState(false);
 
   useEffect(() => {
     async function fetchNote() {
@@ -34,7 +45,12 @@ export default function NotePage() {
         setLoading(true);
         // Use the API client method instead of fetch directly
         const data = await api.getNoteById(id as string);
-        setNote(data.note);
+        
+        if (data && data.success) {
+          setNote(data.note);
+        } else {
+          throw new Error(data?.message || "Failed to fetch note data");
+        }
       } catch (err: any) {
         console.error("Failed to fetch note:", err);
         setError(err.message || "Failed to load note. Please try again.");
@@ -52,6 +68,8 @@ export default function NotePage() {
     if (!note) return;
     
     try {
+      setFlashcardLoading(true);
+      
       // Request flashcard generation
       const response = await api.generateFlashcards(note.rawText);
       
@@ -72,10 +90,14 @@ export default function NotePage() {
           ...note,
           flashcards: saveResponse.flashcards
         });
+      } else {
+        throw new Error(saveResponse.message || "Failed to save flashcards");
       }
     } catch (err: any) {
       console.error("Failed to generate flashcards:", err);
       setError(err.message || "Failed to generate flashcards. Please try again.");
+    } finally {
+      setFlashcardLoading(false);
     }
   };
 
@@ -118,22 +140,15 @@ export default function NotePage() {
   };
 
   if (loading) {
-    return (
-      <div className="container py-12 flex justify-center">
-        <div className="flex items-center">
-          <Loader2 className="mr-2 animate-spin" />
-          Loading note...
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading note..." />;
   }
 
   if (error || !note) {
     return (
       <div className="container py-12">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
-          <AlertCircle className="inline-block mr-2" />
-          {error || "Failed to load note"}
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 flex items-start">
+          <AlertCircle className="mr-2 mt-0.5 flex-shrink-0" size={20} />
+          <span>{error || "Failed to load note"}</span>
         </div>
         <Button asChild>
           <Link href="/dashboard">Back to Dashboard</Link>
@@ -152,55 +167,86 @@ export default function NotePage() {
         </Button>
         <h1 className="text-3xl font-bold">{note.title}</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Created on {new Date(note.createdAt).toLocaleDateString()}
+          Created on {formatDate(note.createdAt)}
         </p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Summary</h2>
-            <div className="prose max-w-none">
-              {note.summary.split('\n').map((paragraph, i) => (
-                <p key={i} className={i > 0 ? "mt-4" : ""}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex items-center">
+                  <BookOpen size={18} className="mr-2" />
+                  Summary
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose max-w-none">
+                {note.summary.split('\n').map((paragraph, i) => (
+                  <p key={i} className={i > 0 ? "mt-4" : ""}>
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
         <div className="space-y-6">
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Flashcards</h2>
-            
-            {note.flashcards && note.flashcards.length > 0 ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {note.flashcards.length} flashcards available
-                </p>
-                <Button asChild className="w-full">
-                  <Link href={`/flashcards/${note._id}`}>
-                    <FileText size={16} className="mr-2" />
-                    Practice Flashcards
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  No flashcards yet. Generate them from your note.
-                </p>
-                <Button onClick={handleGenerateFlashcards} className="w-full">
-                  Generate Flashcards
-                </Button>
-              </div>
-            )}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex items-center">
+                  <FileText size={18} className="mr-2" />
+                  Flashcards
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {note.flashcards && note.flashcards.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {note.flashcards.length} flashcards available
+                  </p>
+                  <Button asChild className="w-full">
+                    <Link href={`/flashcards/${note._id}`}>
+                      Practice Flashcards
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    No flashcards yet. Generate them from your note.
+                  </p>
+                  <Button 
+                    onClick={handleGenerateFlashcards} 
+                    className="w-full"
+                    disabled={flashcardLoading}
+                  >
+                    {flashcardLoading ? (
+                      <Loader text="Generating..." size="sm" />
+                    ) : (
+                      'Generate Flashcards'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
           
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Export</h2>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex items-center">
+                  <Download size={18} className="mr-2" />
+                  Export
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <Button
                 variant="outline"
                 className="w-full justify-start"
@@ -208,11 +254,13 @@ export default function NotePage() {
                 disabled={exportLoading !== null}
               >
                 {exportLoading === 'markdown' ? (
-                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  <Loader size="sm" text="Exporting..." />
                 ) : (
-                  <Download size={16} className="mr-2" />
+                  <>
+                    <Download size={16} className="mr-2" />
+                    Export as Markdown
+                  </>
                 )}
-                Export as Markdown
               </Button>
               <Button
                 variant="outline"
@@ -221,14 +269,16 @@ export default function NotePage() {
                 disabled={exportLoading !== null}
               >
                 {exportLoading === 'anki' ? (
-                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  <Loader size="sm" text="Exporting..." />
                 ) : (
-                  <DownloadCloud size={16} className="mr-2" />
+                  <>
+                    <DownloadCloud size={16} className="mr-2" />
+                    Export to Anki
+                  </>
                 )}
-                Export to Anki
               </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

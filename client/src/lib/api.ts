@@ -1,197 +1,147 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
 /**
- * Base API client for StudySmartBuddy
+ * API client for StudySmartBuddy
+ * Handles all API communication with the backend server
  */
+
+// Base API URL from environment variable
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// Helper function to handle API responses
+async function handleResponse(response: Response) {
+  const data = await response.json();
+  
+  if (!response.ok) {
+    const error = data.message || response.statusText;
+    throw new Error(error);
+  }
+  
+  return data;
+}
+
+// API client object with methods for different endpoints
 export const api = {
-  API_BASE_URL,
-
-  /**
-   * Upload a PDF file to the server
-   */
-  async uploadPDF(file: File) {
-    const formData = new FormData();
-    formData.append('pdf', file);
-
-    const response = await fetch(`${API_BASE_URL}/notes/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to upload PDF: ${response.statusText}`);
-    }
-
-    return response.json();
+  // Notes endpoints
+  async getAllNotes(userId = 'test-user-123') {
+    const response = await fetch(`${API_URL}/notes?userId=${userId}`);
+    return handleResponse(response);
   },
-
-  /**
-   * Extract text from an uploaded PDF
-   * Note: Server expects the exact filepath returned from upload endpoint
-   */
-  async extractText(filePath: string) {
-    const response = await fetch(`${API_BASE_URL}/notes/extract`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ filePath }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to extract text: ${response.statusText}`);
-    }
-
-    return response.json();
+  
+  // Used in components for getting user notes
+  async getUserNotes(userId = 'test-user-123') {
+    const response = await fetch(`${API_URL}/notes/user/${userId}`);
+    return handleResponse(response);
   },
-
-  /**
-   * Generate a summary from text using the server's OpenAI integration
-   */
-  async generateSummary(text: string, title: string) {
-    const response = await fetch(`${API_BASE_URL}/notes/generate-summary`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text, title }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate summary: ${response.statusText}`);
-    }
-
-    return response.json();
+  
+  async getNoteById(id: string) {
+    const response = await fetch(`${API_URL}/notes/${id}`);
+    return handleResponse(response);
   },
-
-  /**
-   * Save a note
-   */
-  async saveNote(noteData: {
-    userId: string;
-    title: string;
-    rawText: string;
-    summary: string;
-    pdfUrl?: string;
-  }) {
-    const response = await fetch(`${API_BASE_URL}/notes/save`, {
+  
+  async saveNote(noteData: any) {
+    const response = await fetch(`${API_URL}/notes/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(noteData),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save note: ${response.statusText}`);
-    }
-
-    return response.json();
+    return handleResponse(response);
   },
-
-  /**
-   * Get user notes
-   */
-  async getUserNotes(userId: string) {
-    const response = await fetch(`${API_BASE_URL}/notes/user/${userId}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch notes: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Get note by ID
-   */
-  async getNoteById(noteId: string) {
-    const response = await fetch(`${API_BASE_URL}/notes/${noteId}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch note: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Generate flashcards from text using OpenAI
-   */
-  async generateFlashcards(text: string) {
-    const response = await fetch(`${API_BASE_URL}/flashcards/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text }),
+  
+  async deleteNote(id: string) {
+    const response = await fetch(`${API_URL}/notes/${id}`, {
+      method: 'DELETE',
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate flashcards: ${response.statusText}`);
-    }
-
-    return response.json();
+    return handleResponse(response);
   },
-
-  /**
-   * Save flashcards
-   */
+  
+  // Flashcard endpoints
+  async getFlashcards(noteId: string) {
+    const response = await fetch(`${API_URL}/flashcards?noteId=${noteId}`);
+    return handleResponse(response);
+  },
+  
+  // Used in components for saving flashcards
   async saveFlashcards(data: {
     userId: string;
     noteId: string;
     flashcards: Array<{ question: string; answer: string }>;
   }) {
-    const response = await fetch(`${API_BASE_URL}/flashcards/save`, {
+    const response = await fetch(`${API_URL}/flashcards/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save flashcards: ${response.statusText}`);
-    }
-
-    return response.json();
+    return handleResponse(response);
   },
-
-  /**
-   * Export to Markdown
-   */
+  
+  async generateFlashcards(text: string) {
+    const response = await fetch(`${API_URL}/flashcards/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+    return handleResponse(response);
+  },
+  
+  // PDF processing endpoints
+  async uploadPDF(file: File) {
+    const formData = new FormData();
+    formData.append('pdf', file);
+    
+    const response = await fetch(`${API_URL}/notes/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+  
+  async extractText(filePath: string) {
+    const response = await fetch(`${API_URL}/notes/extract`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ filePath }),
+    });
+    return handleResponse(response);
+  },
+  
+  async generateSummary(text: string, title: string) {
+    const response = await fetch(`${API_URL}/notes/generate-summary`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, title }),
+    });
+    return handleResponse(response);
+  },
+  
+  // Export endpoints
   async exportToMarkdown(noteId: string) {
-    const response = await fetch(`${API_BASE_URL}/export/markdown`, {
+    const response = await fetch(`${API_URL}/export/markdown`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ noteId }),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to export to Markdown: ${response.statusText}`);
-    }
-
-    return response.json();
+    return handleResponse(response);
   },
-
-  /**
-   * Export to Anki
-   */
+  
   async exportToAnki(noteId: string) {
-    const response = await fetch(`${API_BASE_URL}/export/anki`, {
+    const response = await fetch(`${API_URL}/export/anki`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ noteId }),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to export to Anki: ${response.statusText}`);
-    }
-
-    return response.json();
+    return handleResponse(response);
   },
 };

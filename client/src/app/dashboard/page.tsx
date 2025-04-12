@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageLoader, Loader } from "@/components/ui/loader";
 import { api } from "@/lib/api";
-import { FileIcon, Plus, Clock } from "lucide-react";
+import { FileIcon, Plus, Clock, AlertCircle } from "lucide-react";
+import { formatDate, truncateText } from "@/lib/utils";
 
 // Mock user ID - in a real app this would come from authentication
 const USER_ID = "test-user-123";
@@ -26,7 +29,12 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         const response = await api.getUserNotes(USER_ID);
-        setNotes(response.notes);
+        
+        if (response && response.success) {
+          setNotes(response.notes);
+        } else {
+          throw new Error(response?.message || "Failed to fetch notes");
+        }
       } catch (err: any) {
         console.error("Failed to fetch notes:", err);
         setError("Failed to load your notes. Please try again.");
@@ -50,12 +58,12 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {loading && <p className="text-center py-12">Loading your study materials...</p>}
+      {loading && <PageLoader text="Loading your study materials..." />}
       
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error:</strong>
-          <span className="block sm:inline"> {error}</span>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-start" role="alert">
+          <AlertCircle size={20} className="mr-2 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
@@ -74,14 +82,20 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {notes.map((note) => (
             <Link href={`/notes/${note._id}`} key={note._id}>
-              <div className="border rounded-lg p-6 h-full hover:shadow-md transition-all cursor-pointer bg-card">
-                <h2 className="text-xl font-semibold mb-2 line-clamp-1">{note.title}</h2>
-                <p className="text-muted-foreground line-clamp-3 mb-4">{note.summary}</p>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock size={14} className="mr-1" />
-                  {new Date(note.createdAt).toLocaleDateString()}
-                </div>
-              </div>
+              <Card className="h-full hover:shadow-md transition-all cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="line-clamp-1">{note.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground line-clamp-3 mb-4">
+                    {truncateText(note.summary, 150)}
+                  </p>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock size={14} className="mr-1" />
+                    {formatDate(note.createdAt)}
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>
