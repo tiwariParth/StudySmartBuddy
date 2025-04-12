@@ -50,6 +50,8 @@ export const extractText = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // The filePath from the request should be used directly
+    // Make sure we're using the exact path as returned from the upload endpoint
     const fullPath = path.join(process.cwd(), filePath);
     
     if (!fs.existsSync(fullPath)) {
