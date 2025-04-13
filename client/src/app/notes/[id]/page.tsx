@@ -20,6 +20,16 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { motion } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Note = {
   _id: string;
@@ -42,12 +52,13 @@ export default function NotePage() {
   const [error, setError] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState<'markdown' | 'anki' | null>(null);
   const [flashcardLoading, setFlashcardLoading] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchNote() {
       try {
         setLoading(true);
-        // Use the API client method instead of fetch directly
         const data = await api.getNoteById(id as string);
         
         if (data && data.success) {
@@ -74,22 +85,19 @@ export default function NotePage() {
     try {
       setFlashcardLoading(true);
       
-      // Request flashcard generation
       const response = await api.generateFlashcards(note.rawText);
       
       if (!response.success) {
         throw new Error(response.message || "Failed to generate flashcards");
       }
       
-      // Save generated flashcards
       const saveResponse = await api.saveFlashcards({
-        userId: "test-user-123", // Mock user ID
+        userId: "test-user-123",
         noteId: note._id,
         flashcards: response.flashcards
       });
       
       if (saveResponse.success) {
-        // Update the local note state with new flashcards
         setNote({
           ...note,
           flashcards: saveResponse.flashcards
@@ -122,7 +130,6 @@ export default function NotePage() {
         throw new Error(response.message || `Failed to export to ${format}`);
       }
       
-      // Create a download link for the file
       const blob = new Blob([format === 'markdown' ? response.markdown : response.csvContent], 
                             { type: format === 'markdown' ? 'text/markdown' : 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -132,7 +139,6 @@ export default function NotePage() {
       document.body.appendChild(a);
       a.click();
       
-      // Clean up
       URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: any) {
@@ -144,13 +150,29 @@ export default function NotePage() {
   };
 
   const handleEdit = () => {
-    // Placeholder for edit functionality
-    console.log("Edit button clicked");
+    alert("Edit functionality coming soon!");
   };
 
-  const handleDelete = () => {
-    // Placeholder for delete functionality
-    console.log("Delete button clicked");
+  const handleDelete = async () => {
+    if (!note) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const response = await api.deleteNote(note._id);
+      
+      if (response && response.success) {
+        router.push('/dashboard');
+      } else {
+        throw new Error(response?.message || "Failed to delete note");
+      }
+    } catch (err: any) {
+      console.error("Failed to delete note:", err);
+      setError(err.message || "Failed to delete note. Please try again.");
+      setIsDeleteDialogOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading) {
@@ -216,7 +238,7 @@ export default function NotePage() {
             </Button>
             <Button 
               variant="destructiveOutline" 
-              onClick={handleDelete}
+              onClick={() => setIsDeleteDialogOpen(true)}
               className="hover:shadow-md transition-all duration-300"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -382,6 +404,23 @@ export default function NotePage() {
           </motion.div>
         </motion.div>
       </motion.div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Note</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this note? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? <Loader size="sm" text="Deleting..." /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

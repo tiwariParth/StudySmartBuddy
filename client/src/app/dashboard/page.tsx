@@ -328,20 +328,20 @@ export default function DashboardPage() {
                           <DropdownMenuTrigger asChild>
                             <Button 
                               variant="ghost" 
-                              className="h-8 w-8 p-0 rounded-full"
+                              className="h-8 w-8 p-0 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/50 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <span className="sr-only">Open menu</span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive cursor-pointer"
+                              className="flex items-center px-3 py-2.5 cursor-pointer focus:bg-red-50 hover:bg-red-50 dark:hover:bg-red-900/20 dark:focus:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 focus:text-red-700 dark:focus:text-red-300 transition-colors"
                               onClick={() => setNoteToDelete(note._id)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              Delete Note
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

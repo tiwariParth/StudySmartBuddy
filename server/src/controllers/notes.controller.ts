@@ -4,7 +4,7 @@ import path from 'path';
 import { extractTextFromPDF } from '../utils/pdfUtils';
 import { generateSummary } from '../utils/aiService';
 import Note from '../models/Note';
-import Flashcard from '../models/Flashcard';
+import Flashcard from '../models/Flashcard';  
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -51,8 +51,6 @@ export const extractText = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // The filePath from the request should be used directly
-    // Make sure we're using the exact path as returned from the upload endpoint
     const fullPath = path.join(process.cwd(), filePath);
     
     if (!fs.existsSync(fullPath)) {
@@ -239,7 +237,6 @@ export const deleteNote = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Find the note to get its flashcards
     const note = await Note.findById(id);
     
     if (!note) {
@@ -249,13 +246,11 @@ export const deleteNote = async (req: Request, res: Response): Promise<void> => 
       });
       return;
     }
-
-    // Delete all associated flashcards
+    
     if (note.flashcards && note.flashcards.length > 0) {
       await Flashcard.deleteMany({ _id: { $in: note.flashcards } });
     }
     
-    // Delete the note
     await Note.findByIdAndDelete(id);
     
     res.status(200).json({
