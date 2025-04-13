@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: "StudySmartBuddy - AI Study Assistant",
   description: "Transform your PDFs and notes into interactive study materials with AI",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/book.ico",
   },
 };
 
