@@ -74,17 +74,15 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="flex flex-col sm:flex-row justify-center gap-4 mt-8"
+              className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full mt-6"
             >
-              <Link href="/dashboard">
-                <Button size="lg" className="gap-2 text-base px-8 py-6 transition-transform hover:scale-105 active:scale-95">
-                  <Book className="w-5 h-5" />
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full">
                   Go to Dashboard
                 </Button>
               </Link>
-              <Link href="/upload">
-                <Button size="lg" variant="outline" className="flex items-center gap-2 text-base px-8 py-6 transition-transform hover:scale-105 active:scale-95 border-2">
-                  <Upload className="w-5 h-5" />
+              <Link href="/upload" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full">
                   Upload PDF
                 </Button>
               </Link>
