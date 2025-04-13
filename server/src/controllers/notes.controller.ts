@@ -290,21 +290,25 @@ export const updateNote = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const note = await Note.findById(id);
+    // Use findByIdAndUpdate instead of findById + save
+    // This is more efficient and less prone to connection issues
+    const updateData: { title?: string; summary?: string } = {};
+    if (title) updateData.title = title;
+    if (summary) updateData.summary = summary;
     
-    if (!note) {
+    const updatedNote = await Note.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedNote) {
       res.status(404).json({
         success: false,
         message: 'Note not found'
       });
       return;
     }
-    
-    // Update the fields
-    if (title) note.title = title;
-    if (summary) note.summary = summary;
-    
-    const updatedNote = await note.save();
     
     res.status(200).json({
       success: true,
@@ -313,6 +317,7 @@ export const updateNote = async (req: Request, res: Response): Promise<void> => 
     });
   } catch (error) {
     console.error('Error in updateNote:', error);
+    // Ensure we're sending a proper response even on error
     res.status(500).json({
       success: false,
       message: 'Failed to update note'

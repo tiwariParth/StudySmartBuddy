@@ -47,8 +47,27 @@ const connectDB = async () => {
   for (const connectionString of connectionOptions) {
     try {
       console.log(`Attempting to connect to MongoDB with: ${connectionString}`);
-      await mongoose.connect(connectionString);
+      await mongoose.connect(connectionString, {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        // Set these options to make connections more resilient
+        connectTimeoutMS: 10000,
+        maxPoolSize: 10
+      });
       console.log(`MongoDB Connected: ${mongoose.connection.host}`);
+      
+      // Add connection error handler
+      mongoose.connection.on('error', (err) => {
+        console.error('MongoDB connection error:', err);
+        // Don't exit process, just log the error
+      });
+      
+      // Add reconnection handler
+      mongoose.connection.on('disconnected', () => {
+        console.log('MongoDB disconnected, attempting to reconnect...');
+        setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
+      });
+      
       return;
     } catch (error) {
       console.error(`Connection attempt failed for ${connectionString}:`, error);
