@@ -115,7 +115,7 @@ export const getFlashcards = async (req: Request, res: Response): Promise<void> 
 };
 
 /**
- * Get all flashcards for a specific user
+ * Get all flashcards for a specific user, grouped by notes
  * @route GET /api/flashcards/user/:userId
  */
 export const getUserFlashcards = async (req: Request, res: Response): Promise<void> => {
@@ -128,12 +128,12 @@ export const getUserFlashcards = async (req: Request, res: Response): Promise<vo
     }
     
     // Find all notes belonging to the user
-    const userNotes = await NoteModel.find({ userId });
+    const userNotes = await NoteModel.find({ userId }).lean();
     
     if (!userNotes || userNotes.length === 0) {
       res.status(200).json({
         success: true,
-        flashcards: []
+        flashcardGroups: []
       });
       return;
     }
@@ -142,11 +142,50 @@ export const getUserFlashcards = async (req: Request, res: Response): Promise<vo
     const noteIds = userNotes.map(note => note._id);
     
     // Find all flashcards associated with these notes
-    const flashcards = await FlashcardModel.find({ noteId: { $in: noteIds } });
+    const allFlashcards = await FlashcardModel.find({ noteId: { $in: noteIds } }).lean();
+    
+    if (!allFlashcards || allFlashcards.length === 0) {
+      res.status(200).json({
+        success: true,
+        flashcardGroups: []
+      });
+      return;
+    }
+    
+    // Group flashcards by note ID
+    const flashcardsByNote: Record<string, any[]> = {};
+    allFlashcards.forEach(flashcard => {
+      const noteIdString = flashcard.noteId.toString();
+      if (!flashcardsByNote[noteIdString]) {
+        flashcardsByNote[noteIdString] = [];
+      }
+      flashcardsByNote[noteIdString].push(flashcard);
+    });
+    
+    // Create flashcard groups with note info
+    const flashcardGroups = userNotes
+      .filter(note => {
+        const noteIdString = note._id.toString();
+        return flashcardsByNote[noteIdString] && flashcardsByNote[noteIdString].length > 0;
+      })
+      .map(note => {
+        const noteIdString = note._id.toString();
+        const noteFlashcards = flashcardsByNote[noteIdString] || [];
+        
+        return {
+          noteId: noteIdString,
+          noteTitle: note.title,
+          count: noteFlashcards.length,
+          flashcards: noteFlashcards,
+          createdAt: note.createdAt
+        };
+      })
+      // Sort by most recently created notes first
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     res.status(200).json({
       success: true,
-      flashcards
+      flashcardGroups
     });
   } catch (error: any) {
     console.error('Error in getUserFlashcards:', error);

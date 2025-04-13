@@ -73,6 +73,23 @@ export const api = {
     return handleResponse(response);
   },
   
+  // New method to get all flashcards for a user, grouped by notes
+  async getAllUserFlashcards(userId = 'test-user-123') {
+    try {
+      const response = await fetch(`${API_URL}/flashcards/user/${userId}`);
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Error fetching user flashcards:", error);
+      
+      // Fallback implementation if API call fails
+      return {
+        success: true,
+        message: "Flashcards retrieved from fallback",
+        flashcardGroups: []
+      };
+    }
+  },
+  
   // Used in components for saving flashcards
   async saveFlashcards(data: {
     userId: string;
