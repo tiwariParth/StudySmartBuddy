@@ -2,4 +2,14 @@
 node_modules
 *.pdf
 *.csv
-*.md
+server/exports/Agreement_Summary_Review_2025-04-13T16-10-50.115Z.md
+server/exports/Agreement_Summary_Review_2025-04-13T16-13-13.798Z.md
+server/exports/Agreement_Summary_Review_2025-04-13T16-56-24.234Z.md
+
+
+
+
+
+.env.local
+.env
+server/exports/Test_Note_2025-04-12T04:45:48.012Z_2025-04-12T14-25-10.881Z.md
