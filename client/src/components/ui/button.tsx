@@ -15,6 +15,8 @@ const buttonVariants = cva(
           "bg-red-500 text-white hover:bg-red-600 hover:scale-105 transition-all border border-red-600 shadow-sm",
         destructiveOutline:
           "bg-transparent text-red-500 hover:bg-red-100 border border-red-500 hover:text-red-600 transition-all",
+        deleteAction:
+          "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-800 transition-all",
         outline:
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary:
