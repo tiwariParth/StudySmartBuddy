@@ -265,3 +265,57 @@ export const deleteNote = async (req: Request, res: Response): Promise<void> => 
     });
   }
 };
+
+/**
+ * Update a note's title and summary
+ */
+export const updateNote = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, summary } = req.body;
+    
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        message: 'Note ID is required'
+      });
+      return;
+    }
+    
+    if (!title && !summary) {
+      res.status(400).json({
+        success: false,
+        message: 'At least one field (title or summary) is required for update'
+      });
+      return;
+    }
+
+    const note = await Note.findById(id);
+    
+    if (!note) {
+      res.status(404).json({
+        success: false,
+        message: 'Note not found'
+      });
+      return;
+    }
+    
+    // Update the fields
+    if (title) note.title = title;
+    if (summary) note.summary = summary;
+    
+    const updatedNote = await note.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Note updated successfully',
+      note: updatedNote
+    });
+  } catch (error) {
+    console.error('Error in updateNote:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update note'
+    });
+  }
+};

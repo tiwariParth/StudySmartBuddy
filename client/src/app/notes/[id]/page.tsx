@@ -54,6 +54,10 @@ export default function NotePage() {
   const [flashcardLoading, setFlashcardLoading] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedSummary, setEditedSummary] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     async function fetchNote() {
@@ -150,7 +154,40 @@ export default function NotePage() {
   };
 
   const handleEdit = () => {
-    alert("Edit functionality coming soon!");
+    setEditedTitle(note?.title || "");
+    setEditedSummary(note?.summary || "");
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!note) return;
+    
+    try {
+      setIsEditing(true);
+      
+      const response = await api.updateNote({
+        _id: note._id,
+        title: editedTitle,
+        summary: editedSummary
+      });
+      
+      if (response && response.success) {
+        // Update the local note state with the edited data
+        setNote({
+          ...note,
+          title: editedTitle,
+          summary: editedSummary
+        });
+        setIsEditDialogOpen(false);
+      } else {
+        throw new Error(response?.message || "Failed to update note");
+      }
+    } catch (err: any) {
+      console.error("Failed to update note:", err);
+      setError(err.message || "Failed to update note. Please try again.");
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -417,6 +454,56 @@ export default function NotePage() {
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? <Loader size="sm" text="Deleting..." /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[525px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Edit Note
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Make changes to your note's title and summary below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="title" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Title
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="summary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Summary
+              </label>
+              <textarea
+                id="summary"
+                value={editedSummary}
+                onChange={(e) => setEditedSummary(e.target.value)}
+                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                rows={6}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isEditing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSaveEdit} 
+              disabled={isEditing || !editedTitle.trim() || !editedSummary.trim()}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isEditing ? <Loader size="sm" text="Saving..." /> : "Save Changes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

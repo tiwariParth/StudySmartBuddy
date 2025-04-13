@@ -40,5 +40,6 @@ router.get('/user/:userId', notesController.getUserNotes);
 router.get('/:noteId', notesController.getNoteById);
 router.post('/save', notesController.saveNote);
 router.delete('/:id', notesController.deleteNote);
+router.patch('/:id', notesController.updateNote);
 
 export default router;
